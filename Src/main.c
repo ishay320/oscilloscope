@@ -104,6 +104,9 @@ int main(void)
     /* USER CODE END WHILE */
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     HAL_Delay(100);
+    uint8_t Test[] = "Hello World !!!\r\n"; //Data to send
+    CDC_Transmit_FS(Test, 18);
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
