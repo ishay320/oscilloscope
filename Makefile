@@ -119,8 +119,7 @@ AS_DEFS =
 # C defines
 C_DEFS =  \
 -DUSE_HAL_DRIVER \
--DSTM32F411xE\
--g
+-DSTM32F411xE
 
 
 # AS includes
@@ -207,3 +206,13 @@ clean:
 -include $(wildcard $(BUILD_DIR)/*.d)
 
 # *** EOF ***
+
+upload: build/$(TARGET).bin only-upload
+
+only-upload:
+	st-flash.exe write build/$(TARGET).bin 0x8000000
+
+monitor:
+	putty.exe -serial COM4
+	
+.PHONY: upload monitor only-upload

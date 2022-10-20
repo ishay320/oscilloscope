@@ -1,1 +1,0 @@
-st-flash.exe write build/electric.bin 0x8000000
