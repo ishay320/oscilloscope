@@ -15,7 +15,7 @@ use `make` command to compile
 
 1. st-flash - flash the device
 
-use `make upload` command to compile
+use `make upload` command to upload
 
 example:
 
@@ -36,4 +36,4 @@ use vscode to debug
 - putty
 - arduinoIDE
 
-use `make monitor` command to compile
+use `make monitor` command to monitor
