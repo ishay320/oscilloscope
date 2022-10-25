@@ -48,6 +48,8 @@ DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim11;
+
 /* USER CODE BEGIN PV */
 
 // adc buffer
@@ -63,6 +65,7 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM11_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -70,6 +73,18 @@ static void MX_I2C1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/**
+ * @brief print the time it took in `us` to cdc
+ * 
+ * @param start_time 
+ */
+static inline void printTimeLog(uint16_t start_time)
+{
+    uint16_t timer_took = __HAL_TIM_GET_COUNTER(&htim11) - start_time;
+    char number[60];
+    sprintf(number, "time: %u us\r\n", timer_took);
+    CDC_Transmit_FS((uint8_t*)number, strlen(number));
+}
 /* USER CODE END 0 */
 
 /**
@@ -103,9 +118,12 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_I2C1_Init();
+  MX_TIM11_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, ADC_BUF_LEN);
+  HAL_TIM_Base_Start(&htim11);
 
   /* USER CODE END 2 */
 
@@ -115,7 +133,16 @@ int main(void)
   {
     /* USER CODE END WHILE */
     // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    HAL_Delay(1000);
+    uint32_t start = HAL_GetTick();
+
+    uint16_t timer_start = __HAL_TIM_GET_COUNTER(&htim11); // this is good up to 65ms
+    HAL_Delay(60);
+    printTimeLog(timer_start);
+
+    uint32_t end = HAL_GetTick() - start;
+    char number[60];
+    sprintf(number, "time2: %lu ms \r\n", end);
+    CDC_Transmit_FS((uint8_t*)number, strlen(number));
     // TODO: start transmitting after trigger
     if(adc_full_flag)
     {
@@ -125,8 +152,9 @@ int main(void)
         char number[16];
         sprintf(number, "%d\r\n%d\r\n", adc_buf[i], adc_buf[i+1]);
         uint16_t len = strlen(number);
-        CDC_Transmit_FS((uint8_t*)number, len);
-      }      
+        // CDC_Transmit_FS((uint8_t*)number, len);
+      } 
+     
     }
     /* USER CODE BEGIN 3 */
   }
@@ -261,6 +289,37 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM11 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM11_Init(void)
+{
+
+  /* USER CODE BEGIN TIM11_Init 0 */
+
+  /* USER CODE END TIM11_Init 0 */
+
+  /* USER CODE BEGIN TIM11_Init 1 */
+
+  /* USER CODE END TIM11_Init 1 */
+  htim11.Instance = TIM11;
+  htim11.Init.Prescaler = 92-1;
+  htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim11.Init.Period = 65535;
+  htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM11_Init 2 */
+
+  /* USER CODE END TIM11_Init 2 */
 
 }
 
