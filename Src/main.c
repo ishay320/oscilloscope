@@ -120,11 +120,11 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM11_Init();
   MX_USB_DEVICE_Init();
-  MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, ADC_BUF_LEN);
   HAL_TIM_Base_Start(&htim11);
 
+  char buff[128];
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -308,7 +308,7 @@ static void MX_TIM11_Init(void)
 
   /* USER CODE END TIM11_Init 1 */
   htim11.Instance = TIM11;
-  htim11.Init.Prescaler = 92-1;
+  htim11.Init.Prescaler = 96-1;
   htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim11.Init.Period = 65535;
   htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
