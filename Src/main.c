@@ -132,6 +132,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+    /* USER CODE BEGIN 3 */
     // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     uint32_t start = HAL_GetTick();
 
@@ -156,7 +157,6 @@ int main(void)
       } 
      
     }
-    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
