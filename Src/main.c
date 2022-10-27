@@ -78,13 +78,37 @@ static void MX_TIM11_Init(void);
  * 
  * @param start_time 
  */
-static inline void printTimeLog(uint16_t start_time)
+static inline void printTimeLog_us(uint16_t start_time)
 {
     uint16_t timer_took = __HAL_TIM_GET_COUNTER(&htim11) - start_time;
     char number[60];
     sprintf(number, "time: %u us\r\n", timer_took);
     CDC_Transmit_FS((uint8_t*)number, strlen(number));
 }
+/**
+ * @brief print the time it took in `ms` to cdc
+ * 
+ * @param start_time 
+ */
+static inline void printTimeLog_ms(uint32_t start_time)
+{
+    uint32_t timer_took = HAL_GetTick() - start_time;
+    char number[60];
+    sprintf(number, "time: %lu ms\r\n", timer_took);
+    CDC_Transmit_FS((uint8_t*)number, strlen(number));
+}
+
+void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size)
+{
+  // TODO: cycle it
+  char number[8];
+  for (int i = start_pos; i < start_pos + send_size && i < ADC_BUF_LEN; i++)
+  {
+    sprintf(number, "%u\r\n", adc_buf[i]);
+    CDC_Transmit_FS((uint8_t*)number, strlen(number));
+  }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -133,29 +157,33 @@ int main(void)
   {
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
-    // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    uint32_t start = HAL_GetTick();
+    // // time in us
+    // uint16_t timer_us = __HAL_TIM_GET_COUNTER(&htim11); // this is good up to 65ms
+    // // <function>
+    // printTimeLog_us(timer_us);
 
-    uint16_t timer_start = __HAL_TIM_GET_COUNTER(&htim11); // this is good up to 65ms
-    HAL_Delay(60);
-    printTimeLog(timer_start);
+    // // time in ms
+    // uint32_t timer_ms = HAL_GetTick();
+    // // <function>
+    // printTimeLog_ms(timer_ms);
 
-    uint32_t end = HAL_GetTick() - start;
-    char number[60];
-    sprintf(number, "time2: %lu ms \r\n", end);
-    CDC_Transmit_FS((uint8_t*)number, strlen(number));
+    // HAL_Delay(60);
+    uint16_t trigger_volt = 2000;
+    int send_size = 400;
+
     // TODO: start transmitting after trigger
     if(adc_full_flag)
     {
       adc_full_flag = false;
-      for (size_t i = 0; i < ADC_BUF_LEN; i+=2)
+      for (size_t i = 0; i < ADC_BUF_LEN; i++)
       {
-        char number[16];
-        sprintf(number, "%d\r\n%d\r\n", adc_buf[i], adc_buf[i+1]);
-        uint16_t len = strlen(number);
-        // CDC_Transmit_FS((uint8_t*)number, len);
+        if(adc_buf[i] > trigger_volt)
+        {
+          // TODO: put adc buff in struct
+          printAdcBuffer(adc_buf, i, send_size);
+          break;
+        }
       } 
-     
     }
   }
   /* USER CODE END 3 */
