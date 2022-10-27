@@ -30,6 +30,7 @@
 #include "usbd_cdc.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include <stdbool.h>
 
 /* USER CODE END INCLUDE */
 
@@ -93,7 +94,8 @@
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
-
+extern char *g_receive_buffer;
+extern bool g_receive_new_data;
 /* USER CODE END EXPORTED_VARIABLES */
 
 /**

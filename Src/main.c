@@ -34,7 +34,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define ADC_BUF_LEN 4096
+#define ADC_BUF_LEN 8192
+#define SECOND 1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -167,9 +168,14 @@ int main(void)
     // // <function>
     // printTimeLog_ms(timer_ms);
 
+    if(g_receive_new_data)
+    {
+      g_receive_new_data = false;
+      CDC_Transmit_FS((uint8_t*)g_receive_buffer, strlen(g_receive_buffer));
+    }
     // HAL_Delay(60);
     uint16_t trigger_volt = 2000;
-    int send_size = 400;
+    int send_size = ADC_BUF_LEN;
 
     // TODO: start transmitting after trigger
     if(adc_full_flag)
@@ -181,6 +187,7 @@ int main(void)
         {
           // TODO: put adc buff in struct
           printAdcBuffer(adc_buf, i, send_size);
+          HAL_Delay(SECOND);
           break;
         }
       } 
