@@ -36,6 +36,7 @@
 /* USER CODE BEGIN PD */
 #define ADC_BUF_LEN 8192
 #define SECOND 1000
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,13 +50,14 @@ DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim11;
 
 /* USER CODE BEGIN PV */
 
 // adc buffer
 uint16_t adc_buf[ADC_BUF_LEN];
-bool adc_full_flag = false;
+bool flag_adc_full = false;
 bool adc_half_flag = false;
 
 /* USER CODE END PV */
@@ -67,6 +69,7 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM11_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,15 +102,19 @@ static inline void printTimeLog_ms(uint32_t start_time)
     CDC_Transmit_FS((uint8_t*)number, strlen(number));
 }
 
-void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size)
+void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size, int stride)
 {
-  // TODO: cycle it
-  char number[8];
-  for (int i = start_pos; i < start_pos + send_size && i < ADC_BUF_LEN; i++)
-  {
-    sprintf(number, "%u\r\n", adc_buf[i]);
-    CDC_Transmit_FS((uint8_t*)number, strlen(number));
-  }
+    // TODO: cycle it
+    char number[8];
+    for (int i = start_pos; i < start_pos + send_size && i < ADC_BUF_LEN; i += stride)
+    {
+        sprintf(number, "%u\r\n", adc_buf[i]);
+        uint8_t ret;
+        do
+        {
+            ret = CDC_Transmit_FS((uint8_t*)number, strlen(number));
+        } while (ret == USBD_BUSY);
+    }
 }
 
 /* USER CODE END 0 */
@@ -145,11 +152,18 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM11_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, ADC_BUF_LEN);
   HAL_TIM_Base_Start(&htim11);
 
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+
   char buff[128];
+
+      int32_t CH1_DC = 0;
+
+  TIM2->CCR2 = 65535 / 100;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -168,29 +182,37 @@ int main(void)
     // // <function>
     // printTimeLog_ms(timer_ms);
 
+    // CDC input pass to output
     if(g_receive_new_data)
     {
       g_receive_new_data = false;
       CDC_Transmit_FS((uint8_t*)g_receive_buffer, strlen(g_receive_buffer));
     }
-    // HAL_Delay(60);
-    uint16_t trigger_volt = 2000;
-    int send_size = ADC_BUF_LEN;
+
+    #define SCREEN_SIZE 500
+    #define MAX_READING 4096
+    int stride = 3;
+    uint16_t trigger_volt = MAX_READING / 2;
+    int send_size = SCREEN_SIZE * stride;
 
     // TODO: start transmitting after trigger
-    if(adc_full_flag)
+    if (flag_adc_full)
     {
-      adc_full_flag = false;
-      for (size_t i = 0; i < ADC_BUF_LEN; i++)
-      {
-        if(adc_buf[i] > trigger_volt)
+        flag_adc_full = false;
+        HAL_ADC_Stop_DMA(&hadc1);
+
+        for (size_t i = 0; i < ADC_BUF_LEN; i++)
         {
-          // TODO: put adc buff in struct
-          printAdcBuffer(adc_buf, i, send_size);
-          HAL_Delay(SECOND);
-          break;
+            if (adc_buf[i] >= trigger_volt)
+            {
+                // TODO: put adc buff in struct
+                printAdcBuffer(adc_buf, i, send_size, stride);
+                HAL_Delay(SECOND / 2);
+                HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+                break;
+            }
         }
-      } 
+        HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, ADC_BUF_LEN);
     }
   }
   /* USER CODE END 3 */
@@ -328,6 +350,65 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 65535;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
+
+}
+
+/**
   * @brief TIM11 Initialization Function
   * @param None
   * @retval None
@@ -406,14 +487,13 @@ static void MX_GPIO_Init(void)
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
     adc_half_flag = true;
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 }
 
 // Called when buffer is completely filled
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-    adc_full_flag = true;
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    flag_adc_full = true;
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 }
 /* USER CODE END 4 */
 
