@@ -29,7 +29,19 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum
+{
+    UP,
+    DOWN
+} TriggerDirection;
 
+typedef struct
+{
+    int stride;
+    uint16_t trigger_volt;
+    int send_size;
+    TriggerDirection trigger_direction;
+} Setting;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -117,6 +129,50 @@ void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size, int st
     }
 }
 
+// TODO: Implement this - copy of printf - or make handle for fprintf
+void CDC_printf(const char *__restrict, ...);
+
+void configSetting(char* command, Setting* setting)
+{
+    const size_t command_size = strlen(command);
+    int char_parsed           = 0;
+
+    switch (command[char_parsed++])
+    {
+        case 't':  // trigger
+            switch (command[char_parsed++])
+            {
+                case 'u':  // up
+                    setting->trigger_direction = UP;
+                    break;
+                case 'd':  // down
+                    setting->trigger_direction = DOWN;
+                    break;
+
+                default:
+                    CDC_Transmit_FS((uint8_t*)"ERROR: command is not recognized\r\n", 35);
+                    break;
+            }
+            if (command_size - char_parsed - 1 > 0)
+            {
+                setting->trigger_volt = atoi(command + char_parsed);
+            }
+            return;
+
+            break;
+        case 's':  // adc speed
+            CDC_Transmit_FS((uint8_t*)"ERROR: command is not setup yet\r\n", 34);
+            break;
+        case 'o':  // output
+            CDC_Transmit_FS((uint8_t*)"ERROR: command is not setup yet\r\n", 34);
+            break;
+
+        default:
+            CDC_Transmit_FS((uint8_t*)"ERROR: command is not recognized\r\n", 35);
+            break;
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -159,9 +215,15 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 
-  char buff[128];
+#define SCREEN_SIZE 500
+#define MAX_READING 4096
 
-      int32_t CH1_DC = 0;
+  Setting setting = {
+      .stride            = 3,
+      .trigger_volt      = MAX_READING / 2,
+      .send_size         = SCREEN_SIZE * setting.stride,
+      .trigger_direction = UP,
+  };
 
   TIM2->CCR2 = 65535 / 100;
   /* USER CODE END 2 */
@@ -183,17 +245,11 @@ int main(void)
     // printTimeLog_ms(timer_ms);
 
     // CDC input pass to output
-    if(g_receive_new_data)
+    if (g_receive_new_data)
     {
-      g_receive_new_data = false;
-      CDC_Transmit_FS((uint8_t*)g_receive_buffer, strlen(g_receive_buffer));
+        g_receive_new_data = false;
+        configSetting(g_receive_buffer, &setting);
     }
-
-    #define SCREEN_SIZE 500
-    #define MAX_READING 4096
-    int stride = 3;
-    uint16_t trigger_volt = MAX_READING / 2;
-    int send_size = SCREEN_SIZE * stride;
 
     // TODO: start transmitting after trigger
     if (flag_adc_full)
@@ -203,10 +259,10 @@ int main(void)
 
         for (size_t i = 0; i < ADC_BUF_LEN; i++)
         {
-            if (adc_buf[i] >= trigger_volt)
+            if (adc_buf[i] >= setting.trigger_volt)
             {
                 // TODO: put adc buff in struct
-                printAdcBuffer(adc_buf, i, send_size, stride);
+                printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
                 HAL_Delay(SECOND / 2);
                 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
                 break;
