@@ -216,3 +216,21 @@ monitor:
 	putty.exe -serial COM4
 	
 .PHONY: upload monitor only-upload
+
+TEST_DIR = test
+
+C_TESTS = \
+test\tests.cpp
+
+$(TEST_DIR)/doctest.h:
+	wget -Uri https://github.com/doctest/doctest/releases/download/v2.4.9/doctest.h -O $(TEST_DIR)/doctest.h
+
+$(TEST_DIR)/test: Makefile | $(C_TESTS)
+	g++ $(C_TESTS) $(C_INCLUDES) -o $(TEST_DIR)/test -DTEST
+
+test: $(TEST_DIR)/doctest.h $(TEST_DIR)/test
+	$(TEST_DIR)/test
+
+clean-tests:
+	rm -f $(TEST_DIR)/*.exe $(TEST_DIR)/*.a $(TEST_DIR)/*.o
+.PHONY: test clean-tests
