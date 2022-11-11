@@ -24,24 +24,13 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
 #include <stdbool.h>
+#include "setting.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum
-{
-    UP,
-    DOWN
-} TriggerDirection;
 
-typedef struct
-{
-    int stride;
-    uint16_t trigger_volt;
-    int send_size;
-    TriggerDirection trigger_direction;
-} Setting;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -132,47 +121,6 @@ void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size, int st
 // TODO: Implement this - copy of printf - or make handle for fprintf
 void CDC_printf(const char *__restrict, ...);
 
-void configSetting(char* command, Setting* setting)
-{
-    const size_t command_size = strlen(command);
-    int char_parsed           = 0;
-
-    switch (command[char_parsed++])
-    {
-        case 't':  // trigger
-            switch (command[char_parsed++])
-            {
-                case 'u':  // up
-                    setting->trigger_direction = UP;
-                    break;
-                case 'd':  // down
-                    setting->trigger_direction = DOWN;
-                    break;
-
-                default:
-                    CDC_Transmit_FS((uint8_t*)"ERROR: command is not recognized\r\n", 35);
-                    break;
-            }
-            if (command_size - char_parsed - 1 > 0)
-            {
-                setting->trigger_volt = atoi(command + char_parsed);
-            }
-            return;
-
-            break;
-        case 's':  // adc speed
-            CDC_Transmit_FS((uint8_t*)"ERROR: command is not setup yet\r\n", 34);
-            break;
-        case 'o':  // output
-            CDC_Transmit_FS((uint8_t*)"ERROR: command is not setup yet\r\n", 34);
-            break;
-
-        default:
-            CDC_Transmit_FS((uint8_t*)"ERROR: command is not recognized\r\n", 35);
-            break;
-    }
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -259,13 +207,33 @@ int main(void)
 
         for (size_t i = 0; i < ADC_BUF_LEN; i++)
         {
-            if (adc_buf[i] >= setting.trigger_volt)
+            switch (setting.trigger_direction)
             {
-                // TODO: put adc buff in struct
-                printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
-                HAL_Delay(SECOND / 2);
-                HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-                break;
+                case UP:
+                    if (adc_buf[i] >= setting.trigger_volt)
+                    {
+                        // TODO: put adc buff in struct
+                        // printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
+                        HAL_Delay(SECOND / 2);
+                        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+                        break;
+                    }
+                    break;
+                case DOWN:
+                    if (adc_buf[i] < setting.trigger_volt)
+                    {
+                        // TODO: put adc buff in struct
+                        // printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
+                        HAL_Delay(SECOND / 2);
+                        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+                        break;
+                    }
+                    break;
+                case STOP:
+                    break;
+
+                default:
+                    break;
             }
         }
         HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, ADC_BUF_LEN);

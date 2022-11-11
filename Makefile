@@ -72,6 +72,11 @@ Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c  
 
+C_PRIVATE_SOURCES=\
+Src/setting.c
+
+C_SOURCES+=${C_PRIVATE_SOURCES}
+
 # ASM sources
 ASM_SOURCES =  \
 startup_stm32f411xe.s
@@ -222,13 +227,15 @@ TEST_DIR = test
 C_TESTS = \
 test\tests.cpp
 
+C_TESTS+=${C_PRIVATE_SOURCES}
+
 $(TEST_DIR)/doctest.h:
 	wget -Uri https://github.com/doctest/doctest/releases/download/v2.4.9/doctest.h -O $(TEST_DIR)/doctest.h
 
-$(TEST_DIR)/test: Makefile | $(C_TESTS)
+$(TEST_DIR)/test:$(C_TESTS) | Makefile 
 	g++ $(C_TESTS) $(C_INCLUDES) -o $(TEST_DIR)/test -DTEST
 
-test: $(TEST_DIR)/doctest.h $(TEST_DIR)/test
+test: $(TEST_DIR)/doctest.h $(TEST_DIR)/test  $(C_TESTS)
 	$(TEST_DIR)/test
 
 clean-tests:
