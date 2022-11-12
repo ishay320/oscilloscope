@@ -2,3 +2,4 @@
 /test/doctest.h
 *.exe
 *.a
+/build_test

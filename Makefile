@@ -222,22 +222,41 @@ monitor:
 	
 .PHONY: upload monitor only-upload
 
+#######################################
+# tests
+#######################################
+
+TEST_TARGET = test
 TEST_DIR = test
 
-C_TESTS = \
-test\tests.cpp
+BUILD_TEST_DIR = build_test
 
-C_TESTS+=${C_PRIVATE_SOURCES}
+TEST_MAIN = \
+$(TEST_DIR)\tests.cpp
+
+# flags and compilers
+C_TEST_FLAGS = -ggdb -Og
+CC_TEST = gcc
+CXX_TEST = g++
+
+TEST_OBJECTS = $(addprefix $(BUILD_TEST_DIR)/,$(notdir $(C_PRIVATE_SOURCES:.c=.o)))
+vpath %.c $(sort $(dir $(C_PRIVATE_SOURCES)))
 
 $(TEST_DIR)/doctest.h:
 	wget -Uri https://github.com/doctest/doctest/releases/download/v2.4.9/doctest.h -O $(TEST_DIR)/doctest.h
 
-$(TEST_DIR)/test:$(C_TESTS) | Makefile 
-	g++ $(C_TESTS) $(C_INCLUDES) -o $(TEST_DIR)/test -DTEST
+$(BUILD_TEST_DIR):
+	mkdir $@	
 
-test: $(TEST_DIR)/doctest.h $(TEST_DIR)/test  $(C_TESTS)
-	$(TEST_DIR)/test
+$(BUILD_TEST_DIR)/%.o: %.c Makefile | $(BUILD_TEST_DIR) 
+	$(CC_TEST) $(C_TEST_FLAGS) -c $< -o $@ $(C_INCLUDES)
+
+$(BUILD_TEST_DIR)/$(TEST_TARGET): $(TEST_OBJECTS) Makefile
+	$(CXX_TEST) $(C_TEST_FLAGS) $(TEST_MAIN) $(TEST_OBJECTS) $(C_INCLUDES) -o $@ -DTEST
+
+$(TEST_TARGET): $(TEST_DIR)/doctest.h $(BUILD_TEST_DIR)/$(TEST_TARGET)
+	$(BUILD_TEST_DIR)/$(TEST_TARGET)
 
 clean-tests:
-	rm -f $(TEST_DIR)/*.exe $(TEST_DIR)/*.a $(TEST_DIR)/*.o
-.PHONY: test clean-tests
+	rm -f $(BUILD_TEST_DIR)/*.exe $(BUILD_TEST_DIR)/*.a $(BUILD_TEST_DIR)/*.o
+.PHONY: $(TEST_TARGET) clean-tests
