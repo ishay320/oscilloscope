@@ -22,9 +22,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "usbd_cdc_if.h"
 #include <stdbool.h>
+#include <stdio.h>
+
 #include "setting.h"
+#include "usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -79,6 +81,24 @@ static void MX_TIM2_Init(void);
 /* USER CODE BEGIN 0 */
 
 /**
+ * @brief overload of _write function for use with printf
+ *
+ * @param file - not in use
+ * @param ptr c_str
+ * @param len of the string
+ * @return int - if all sended it will return
+ */
+int _write(int file, char* ptr, int len)
+{
+    static uint8_t ret = USBD_OK;
+    do
+    {
+        ret = CDC_Transmit_FS((uint8_t*)ptr, len);
+    } while (ret == USBD_BUSY);
+    return len;
+}
+
+/**
  * @brief print the time it took in `us` to cdc
  * 
  * @param start_time 
@@ -86,9 +106,7 @@ static void MX_TIM2_Init(void);
 static inline void printTimeLog_us(uint16_t start_time)
 {
     uint16_t timer_took = __HAL_TIM_GET_COUNTER(&htim11) - start_time;
-    char number[60];
-    sprintf(number, "time: %u us\r\n", timer_took);
-    CDC_Transmit_FS((uint8_t*)number, strlen(number));
+    printf("time: %u us\r\n", timer_took);
 }
 /**
  * @brief print the time it took in `ms` to cdc
@@ -98,28 +116,17 @@ static inline void printTimeLog_us(uint16_t start_time)
 static inline void printTimeLog_ms(uint32_t start_time)
 {
     uint32_t timer_took = HAL_GetTick() - start_time;
-    char number[60];
-    sprintf(number, "time: %lu ms\r\n", timer_took);
-    CDC_Transmit_FS((uint8_t*)number, strlen(number));
+    printf("time: %lu ms\r\n", timer_took);
 }
 
 void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size, int stride)
 {
     // TODO: cycle it
-    char number[8];
     for (int i = start_pos; i < start_pos + send_size && i < ADC_BUF_LEN; i += stride)
     {
-        sprintf(number, "%u\r\n", adc_buf[i]);
-        uint8_t ret;
-        do
-        {
-            ret = CDC_Transmit_FS((uint8_t*)number, strlen(number));
-        } while (ret == USBD_BUSY);
+        printf("%u\r\n", adc_buf[i]);
     }
 }
-
-// TODO: Implement this - copy of printf - or make handle for fprintf
-void CDC_printf(const char *__restrict, ...);
 
 /* USER CODE END 0 */
 
@@ -213,7 +220,7 @@ int main(void)
                     if (adc_buf[i] >= setting.trigger_volt)
                     {
                         // TODO: put adc buff in struct
-                        // printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
+                        printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
                         HAL_Delay(SECOND / 2);
                         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
                         break;
@@ -223,7 +230,7 @@ int main(void)
                     if (adc_buf[i] < setting.trigger_volt)
                     {
                         // TODO: put adc buff in struct
-                        // printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
+                        printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
                         HAL_Delay(SECOND / 2);
                         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
                         break;

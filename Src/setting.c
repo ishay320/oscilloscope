@@ -2,8 +2,11 @@
 extern "C"
 {
 #endif
-
 #include "setting.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
     void configSetting(const char* command, Setting* setting)
     {
@@ -26,7 +29,7 @@ extern "C"
                         break;
 
                     default:
-                        CDC_Transmit_FS((uint8_t*)"ERROR: command is not recognized\r\n", 35);
+                        printf("ERROR: command '%s'is not recognized in char %d\r\n", command, char_parsed);
                         break;
                 }
                 if (command_size - char_parsed > 0)
@@ -37,14 +40,14 @@ extern "C"
 
                 break;
             case 's':  // adc speed
-                CDC_Transmit_FS((uint8_t*)"ERROR: command is not setup yet\r\n", 34);
+                printf("ERROR: command '%s' is not setup yet\r\n", command);
                 break;
             case 'o':  // output
-                CDC_Transmit_FS((uint8_t*)"ERROR: command is not setup yet\r\n", 34);
+                printf("ERROR: command '%s' is not setup yet\r\n", command);
                 break;
 
             default:
-                CDC_Transmit_FS((uint8_t*)"ERROR: command is not recognized\r\n", 35);
+                printf("ERROR: command '%s' is not setup yet\r\n", command);
                 break;
         }
     }

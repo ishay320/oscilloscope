@@ -1,14 +1,6 @@
+#ifndef setting_H
+#define setting_H
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
-#if defined(TEST)
-#include <stdio.h>
-#define CDC_Transmit_FS(c,s) puts((char*)c)
-#else
-#include "usbd_cdc_if.h"
-#endif // TEST
-
 
 typedef enum
 {
@@ -26,3 +18,5 @@ typedef struct
 } Setting;
 
 void configSetting(const char* command, Setting* setting);
+
+#endif  // setting_H
