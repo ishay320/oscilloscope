@@ -26,6 +26,8 @@ TEST_CASE("setting struct functions")
     check_setting(&setting, 0, /* trigger_volt */ 0, 0, TriggerDirection::DOWN);
     configSetting("tu", &setting);
     check_setting(&setting, 0, /* trigger_volt */ 0, 0, TriggerDirection::UP);
+    configSetting("ts", &setting);
+    check_setting(&setting, 0, /* trigger_volt */ 0, 0, TriggerDirection::STOP);
 
     // check the number receiving
     configSetting("td100", &setting);
