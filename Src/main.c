@@ -213,12 +213,17 @@ int main(void)
         HAL_ADC_Stop_DMA(&hadc1);
 
         bool scanning = true;
+        bool trigger_setup = false;
         for (size_t i = 0; i < ADC_BUF_LEN && scanning; i++)
         {
             switch (setting.trigger_direction)
             {
                 case UP:
-                    if (adc_buf[i] >= setting.trigger_volt)
+                    if (adc_buf[i] < setting.trigger_volt)
+                    {
+                        trigger_setup = true;
+                    }
+                    if (adc_buf[i] >= setting.trigger_volt && trigger_setup)
                     {
                         // TODO: put adc buff in struct
                         printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
@@ -228,7 +233,11 @@ int main(void)
                     }
                     break;
                 case DOWN:
-                    if (adc_buf[i] < setting.trigger_volt)
+                    if (adc_buf[i] >= setting.trigger_volt)
+                    {
+                        trigger_setup = true;
+                    }
+                    if (adc_buf[i] < setting.trigger_volt && trigger_setup)
                     {
                         // TODO: put adc buff in struct
                         printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
