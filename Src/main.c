@@ -212,7 +212,8 @@ int main(void)
         flag_adc_full = false;
         HAL_ADC_Stop_DMA(&hadc1);
 
-        for (size_t i = 0; i < ADC_BUF_LEN; i++)
+        bool scanning = true;
+        for (size_t i = 0; i < ADC_BUF_LEN && scanning; i++)
         {
             switch (setting.trigger_direction)
             {
@@ -223,7 +224,7 @@ int main(void)
                         printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
                         HAL_Delay(SECOND / 2);
                         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-                        break;
+                        scanning = false;
                     }
                     break;
                 case DOWN:
@@ -233,13 +234,15 @@ int main(void)
                         printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
                         HAL_Delay(SECOND / 2);
                         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-                        break;
+                        scanning = false;
                     }
                     break;
                 case STOP:
+                    scanning = false;
                     break;
 
                 default:
+                    scanning = false;
                     break;
             }
         }
