@@ -11,10 +11,10 @@ extern "C"
 
 void check_setting(const Setting* setting, int stride, uint16_t trigger_volt, int send_size, TriggerDirection trigger_direction)
 {
-    CHECK(setting->send_size == send_size);
-    CHECK(setting->stride == stride);
-    CHECK(setting->trigger_direction == trigger_direction);
-    CHECK(setting->trigger_volt == trigger_volt);
+    CHECK_EQ(setting->send_size, send_size);
+    CHECK_EQ(setting->stride, stride);
+    CHECK_EQ(setting->trigger_direction, trigger_direction);
+    CHECK_EQ(setting->trigger_volt, trigger_volt);
 }
 
 TEST_CASE("setting struct functions")
