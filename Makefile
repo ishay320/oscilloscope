@@ -132,7 +132,6 @@ AS_INCLUDES =
 
 # C includes
 C_INCLUDES =  \
--IInc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
@@ -140,6 +139,10 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include
 
+C_PRIVATE_INCLUDES = \
+-IInc \
+
+C_INCLUDES += $(C_PRIVATE_INCLUDES)
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
@@ -249,10 +252,10 @@ $(BUILD_TEST_DIR):
 	mkdir $@	
 
 $(BUILD_TEST_DIR)/%.o: %.c Makefile | $(BUILD_TEST_DIR) 
-	$(CC_TEST) $(C_TEST_FLAGS) -c $< -o $@ $(C_INCLUDES)
+	$(CC_TEST) $(C_TEST_FLAGS) -c $< -o $@ $(C_PRIVATE_INCLUDES)
 
 $(BUILD_TEST_DIR)/$(TEST_TARGET): $(TEST_OBJECTS) Makefile $(TEST_MAIN)
-	$(CXX_TEST) $(C_TEST_FLAGS) $(TEST_MAIN) $(TEST_OBJECTS) $(C_INCLUDES) -o $@ -DTEST
+	$(CXX_TEST) $(C_TEST_FLAGS) $(TEST_MAIN) $(TEST_OBJECTS) $(C_PRIVATE_INCLUDES) -o $@ -DTEST
 
 $(TEST_TARGET): $(TEST_DIR)/doctest.h $(BUILD_TEST_DIR)/$(TEST_TARGET)
 	$(BUILD_TEST_DIR)/$(TEST_TARGET)
