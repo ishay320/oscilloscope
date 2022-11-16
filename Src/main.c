@@ -119,12 +119,23 @@ static inline void printTimeLog_ms(uint32_t start_time)
     printf("time: %lu ms\r\n", timer_took);
 }
 
-void printAdcBuffer(uint16_t* adc_buf, uint16_t start_pos, int send_size, int stride)
+/**
+ * @brief print the buffer in a cycle way
+ *
+ * @param adc_buf the buffer of the ADC
+ * @param start_pos starting position can be before the real pos (can be minus)
+ * @param send_size how much to send
+ * @param stride how many reading to jump over
+ */
+void printAdcBuffer(uint16_t* adc_buf, int start_pos, uint16_t send_size, uint16_t stride)
 {
-    // TODO: cycle it
-    for (int i = start_pos; i < start_pos + send_size && i < ADC_BUF_LEN; i += stride)
+    int buffer_size = ADC_BUF_LEN;
+    int arr_pos     = (start_pos + buffer_size) % buffer_size;
+
+    for (int i = start_pos; i < start_pos + send_size * stride; i += stride)
     {
-        printf("%u\r\n", adc_buf[i]);
+        printf("%u\r\n", adc_buf[arr_pos]);
+        arr_pos = (arr_pos + stride) % buffer_size;
     }
 }
 
@@ -174,10 +185,11 @@ int main(void)
 #define MAX_READING 4096
 
   Setting setting = {
-      .stride            = 3,
+      .stride            = 2,
       .trigger_volt      = MAX_READING / 2,
-      .send_size         = SCREEN_SIZE * setting.stride,
+      .send_size         = SCREEN_SIZE,
       .trigger_direction = UP,
+      .rewind            = 10,
   };
 
   TIM2->CCR2 = 65535 / 100;
@@ -226,7 +238,7 @@ int main(void)
                     if (adc_buf[i] >= setting.trigger_volt && trigger_setup)
                     {
                         // TODO: put adc buff in struct
-                        printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
+                        printAdcBuffer(adc_buf, i - setting.rewind, setting.send_size, setting.stride);
                         HAL_Delay(SECOND / 2);
                         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
                         scanning = false;
@@ -240,7 +252,7 @@ int main(void)
                     if (adc_buf[i] < setting.trigger_volt && trigger_setup)
                     {
                         // TODO: put adc buff in struct
-                        printAdcBuffer(adc_buf, i, setting.send_size, setting.stride);
+                        printAdcBuffer(adc_buf, i - setting.rewind, setting.send_size, setting.stride);
                         HAL_Delay(SECOND / 2);
                         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
                         scanning = false;

@@ -15,6 +15,7 @@ typedef struct
     uint16_t trigger_volt;
     int send_size;
     TriggerDirection trigger_direction;
+    int rewind;
 } Setting;
 
 void configSetting(const char* command, Setting* setting);
