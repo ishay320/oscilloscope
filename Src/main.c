@@ -211,14 +211,13 @@ int main(void)
     // // <function>
     // printTimeLog_ms(timer_ms);
 
-    // CDC input pass to output
+    // check if got new input
     if (g_receive_new_data)
     {
         g_receive_new_data = false;
         configSetting(g_receive_buffer, &setting);
     }
 
-    // TODO: start transmitting after trigger
     if (flag_adc_full)
     {
         flag_adc_full = false;
