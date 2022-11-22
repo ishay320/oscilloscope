@@ -235,31 +235,37 @@ TEST_DIR = test
 BUILD_TEST_DIR = build_test
 
 TEST_MAIN = \
-$(TEST_DIR)\tests.cpp
+test\tests.cpp
 
 # flags and compilers
-C_TEST_FLAGS = -ggdb -Og
+TEST_FLAGS = -g -Og
 CC_TEST = gcc
 CXX_TEST = g++
 
-TEST_OBJECTS = $(addprefix $(BUILD_TEST_DIR)/,$(notdir $(C_PRIVATE_SOURCES:.c=.o)))
+TEST_OBJECTS = $(addprefix $(BUILD_TEST_DIR)/c/,$(notdir $(C_PRIVATE_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_PRIVATE_SOURCES)))
+
+TEST_CPP_OBJECTS = $(addprefix $(BUILD_TEST_DIR)/cpp/,$(notdir $(TEST_MAIN:.cpp=.o)))
+vpath %.cpp $(TEST_DIR)
 
 $(TEST_DIR)/doctest.h:
 	wget -Uri https://github.com/doctest/doctest/releases/download/v2.4.9/doctest.h -O $(TEST_DIR)/doctest.h
 
 $(BUILD_TEST_DIR):
-	mkdir $@	
+	mkdir $@ $@/c $@/cpp
 
-$(BUILD_TEST_DIR)/%.o: %.c Makefile | $(BUILD_TEST_DIR) 
-	$(CC_TEST) $(C_TEST_FLAGS) -c $< -o $@ $(C_PRIVATE_INCLUDES)
+$(BUILD_TEST_DIR)/cpp/%.o: %.cpp Makefile | $(BUILD_TEST_DIR)
+	$(CXX_TEST) $(TEST_FLAGS) -c $< -o $@ $(C_PRIVATE_INCLUDES)
 
-$(BUILD_TEST_DIR)/$(TEST_TARGET): $(TEST_OBJECTS) Makefile $(TEST_MAIN)
-	$(CXX_TEST) $(C_TEST_FLAGS) $(TEST_MAIN) $(TEST_OBJECTS) $(C_PRIVATE_INCLUDES) -o $@ -DTEST
+$(BUILD_TEST_DIR)/c/%.o: %.c Makefile | $(BUILD_TEST_DIR)
+	$(CC_TEST) $(TEST_FLAGS) -c $< -o $@ $(C_PRIVATE_INCLUDES)
+
+$(BUILD_TEST_DIR)/$(TEST_TARGET): $(TEST_OBJECTS) $(TEST_CPP_OBJECTS) Makefile
+	$(CXX_TEST) $(TEST_CPP_OBJECTS) $(TEST_OBJECTS) -o $@
 
 $(TEST_TARGET): $(TEST_DIR)/doctest.h $(BUILD_TEST_DIR)/$(TEST_TARGET)
 	$(BUILD_TEST_DIR)/$(TEST_TARGET)
 
 clean-tests:
-	rm -f $(BUILD_TEST_DIR)/*.exe $(BUILD_TEST_DIR)/*.a $(BUILD_TEST_DIR)/*.o
+	rm -fr $(BUILD_TEST_DIR)
 .PHONY: $(TEST_TARGET) clean-tests
